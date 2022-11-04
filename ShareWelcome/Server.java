@@ -10,8 +10,15 @@ public class Server {
   
     private ServerSocket welcomeSocket;
 	
-    public final static int THREAD_COUNT = 10;
+    public static int THREAD_COUNT = 10;
     private ServiceThread[] threads;
+
+	public static int cacheSize = 8096;
+
+	public static int reqCnt = 0;
+
+	static HashMap<String, String> cfgMap = new HashMap<String, String>();
+	static Map<String, String> fileCache = new HashMap<>();
 
     /* Constructor: starting all threads at once */
     public Server(int serverPort) {
@@ -26,7 +33,7 @@ public class Server {
 
 	        // start all threads
 	        for (int i = 0; i < threads.length; i++) {
-			    threads[i] = new ServiceThread(welcomeSocket); 
+			    threads[i] = new ServiceThread(welcomeSocket, cfgMap, fileCache, cacheSize);
 			    threads[i].start();
 	        }
 	    } catch (Exception e) {
@@ -35,13 +42,26 @@ public class Server {
 
     } // end of Server
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
 	   // see if we do not use default server port
 	   int serverPort = 6789;
-	   if (args.length >= 1)
-	      serverPort = Integer.parseInt(args[0]);
-		
+
+		// see if there is .conf
+		cfgMap.put("vb_default", "./");
+		String confName = "httpd.conf";
+		if (args.length >= 2)
+			if (args[0].equals("-config")) {
+				confName = args[1];
+				FileTest cfg = new FileTest();
+				String cfgFileContent = cfg.cfgRead(confName);
+				cfgMap = cfg.generateCfgMap(cfgFileContent);
+				serverPort = Integer.parseInt(cfgMap.get("Listen"));
+				cacheSize = Integer.parseInt(cfgMap.get("CacheSize"));
+				THREAD_COUNT = Integer.parseInt(cfgMap.get("ThreadPoolSize"));
+				System.out.println(cfgMap.get("vb_yunxi.site"));
+				System.out.println(cfgMap.toString());
+			}
 	   Server server = new Server(serverPort);
 	   server.run();
 	   

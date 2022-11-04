@@ -9,9 +9,15 @@ import java.util.*;
 public class ServiceThread extends Thread {
 
     ServerSocket welcomeSocket;
-	static Map<String, String> fileCache = new HashMap<>();
-    public ServiceThread(ServerSocket welcomeSocket) {
+	Map<String, String> fileCache = new HashMap<>();
+	int cacheSize = 8096;
+	Map<String, String> cfgMap = new HashMap<>();
+
+    public ServiceThread(ServerSocket welcomeSocket, Map<String, String> cfgMap, Map<String, String> fileCache, int cacheSize) {
 	    this.welcomeSocket = welcomeSocket;
+		this.cfgMap = cfgMap;
+		this.fileCache = fileCache;
+		this.cacheSize = cacheSize;
     }
   
     public void run() {
@@ -30,7 +36,7 @@ public class ServiceThread extends Thread {
 
 					// process a request
 					WebRequestHandler wrh =
-							new WebRequestHandler( s, "./", fileCache );
+						new WebRequestHandler( s, cfgMap, fileCache, cacheSize);
 
 					wrh.processRequest();
 		        } catch (Exception e) {
