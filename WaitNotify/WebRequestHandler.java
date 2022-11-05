@@ -5,10 +5,6 @@
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -28,7 +24,7 @@ class WebRequestHandler {
 	String ifModified;
 	boolean ifModifiedChange = false;
     File fileInfo;
-
+	boolean cgiFlag;
 	Map<String, String> fileCache;
 	int cacheSize;
 	Map<String, String> cfgMap;
@@ -50,6 +46,7 @@ class WebRequestHandler {
     public void processRequest() 
     {
 		try {
+			cgiFlag = false;
 	    	mapURL2File();
 			if (ifModifiedChange) {
 				SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
@@ -60,7 +57,7 @@ class WebRequestHandler {
 					return;
 				}
 			}
-	    	if ( fileInfo != null ) // found the file and knows its info
+	    	if ( fileInfo != null && !cgiFlag) // found the file and knows its info
 	    	{
 		    	outputResponseHeader();
 		    	outputResponseBody();
@@ -128,11 +125,13 @@ class WebRequestHandler {
 
 	    // map to file name
 	    fileName = WWW_ROOT + urlName;
+
 			DEBUG("Map to File name: " + fileName);
 			fileInfo = new File(fileName);
 			if (!fileInfo.isFile()) {
 				outputError(404, "Not Found");
 				fileInfo = null;
+
 		}
     } // end mapURL2file
 
@@ -202,43 +201,6 @@ class WebRequestHandler {
 	    } catch (Exception e) {}
     }
 
-	public static String runPB(String command, String directory, Map<String, String> env) throws IOException {
-		// .cgi
-		ProcessBuilder processBuilder = new ProcessBuilder(
-				command);
-//        System.out.println(env.keySet());
-		Set set = env.keySet();
-		Iterator iterator = set.iterator();
-		while (iterator.hasNext()){
-			Object key = iterator.next();
-			Object value = env.get(key);
-			processBuilder.environment().put((String) key, (String) value);
-			System.out.println("env add: "+key+"===>"+value);
-		}
-		DEBUG("process");
-		String result = "";
-		synchronized (processBuilder) {
-				processBuilder.directory(new File(directory));
-				Process process = processBuilder.start();
-				DEBUG("preResult");
-//		System.out.print(printStream(process.getErrorStream()));
-				result = printStream(process.getInputStream());
-				DEBUG(result);
-		}
-		return result;
-	}
-
-	public static String printStream(InputStream is) throws IOException {
-		// .cgi
-		InputStreamReader isr = new InputStreamReader(is);
-		BufferedReader br = new BufferedReader(isr);
-		String line, result = "";
-		while ((line = br.readLine()) != null) {
-			System.out.println(line);
-			result += line;
-		}
-		return result;
-	}
     static void DEBUG(String s) 
     {
        if (_DEBUG)
